@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/zero-patches.svg" alt="Zero Patches logo" width="128">
+
 # 🧩 Zero Patches
 
 **Independent, community-maintained patches for Morphe.**
