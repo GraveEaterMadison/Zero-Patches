@@ -60,10 +60,11 @@ The implementation derives the obfuscated boolean field references from the matc
 ## Validation status
 
 - APK archive/package/version reconnaissance: completed.
-- Raw DEX instruction inspection for the three target methods: completed using a local DEX parser; this is not a full Smali decompilation.
-- Initial CI Kotlin/Morphe build: passed before the query-bar fingerprint correction.
-- Corrected source has been pushed; CI for the corrected head and bundle inspection are pending.
-- Applying the generated bundle to the original APKS and inspecting the resulting splits: pending.
+- Raw DEX instruction inspection for the three target methods: completed using a local DEX parser; this is instruction-level DEX inspection, not a full Smali decompilation.
+- Corrected Kotlin source and Morphe API compatibility: CI `buildAndroid` passed on commit `306d4b11445cd9904bcd2ff8eadd1c8d96864d90`.
+- Generated `patches-1.0.0.mpp` bundle: inspected. It contains both Wolfram|Alpha patch classes, the compatibility constants, the appearance choices, and all 12 customization option keys. Bundle SHA-256: `e7351226f939566dee299dfba8461c309683f08bdd96650bc2e0b48754d6e112`.
+- Bundle manifest reports Patcher-Version `2.5.0`; compatibility bytecode includes package `com.wolfram.android.alphapro`, version `1.0.8.20260601651`, version code `117`, ARM64 ABI, and required APKS input.
+- Applying the generated bundle to the original APKS and inspecting the resulting APK/splits: pending.
 - Runtime/device testing: pending.
 
-Do not describe the patches as working until bundle generation, patch application, and runtime validation have succeeded.
+Do not describe the patches as working until patch application and runtime validation have succeeded.
