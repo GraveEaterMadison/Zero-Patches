@@ -43,8 +43,8 @@ internal object ResultOptionsFingerprint : Fingerprint(
 /**
  * Finds the query-bar visibility check using the fragment's Intent field.
  *
- * In the inspected target, y0(Bundle) loads an Intent field and calls
- * Intent.getExtras(); it does not call Activity.getIntent().
+ * The inspected target reloads its Intent immediately before the getExtras call
+ * associated with HIDEQUERYBARKEY; it does not call Activity.getIntent().
  */
 internal object QueryBarFingerprint : Fingerprint(
     definingClass = WolframAlphaConstants.FRAGMENT_PACKAGE,
@@ -57,6 +57,7 @@ internal object QueryBarFingerprint : Fingerprint(
             returnType = "Landroid/os/Bundle;",
         ),
         opcode(Opcode.MOVE_RESULT_OBJECT, MatchAfterImmediately()),
+        opcode(Opcode.CONST_STRING, MatchAfterImmediately()),
         string(WolframAlphaConstants.HIDE_QUERY_BAR_KEY),
         methodCall(
             definingClass = "Landroid/os/BaseBundle;",
