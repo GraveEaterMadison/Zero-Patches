@@ -24,7 +24,7 @@ This controls query-result rendering mode, not the entire app's Android theme.
 
 ## Result customization
 
-The fragment reads existing `HIDE...KEY` flags into boolean fields on its shared application/engine object. In this target, those reads are gated behind `ISUSEDASSDKKEY`; the patch therefore sets the corresponding fields after that branch, rather than turning on SDK mode or modifying purchase logic.
+The fragment's `p0(Intent)` method reads the supported `HIDE...KEY` extras and writes their values into boolean fields on the shared Wolfram Alpha engine object. The patch sets only the selected fields after this flag-processing block. It does not enable SDK mode or alter action routing.
 
 The patch offers only flags for which the inspected DEX contains a corresponding boolean field write:
 
@@ -41,9 +41,9 @@ The patch offers only flags for which the inspected DEX contains a corresponding
 - Image-map links
 - Powered-by footer
 
-The `HIDEQUERYBARKEY` path is special: the app's fragment code hides the query bar when the extra is present and its Boolean value is `false`. The patch adds that exact value before the visibility check, then sets the matching internal query-bar field after the flag-reading branch.
+The `HIDEQUERYBARKEY` path is special: the fragment's `y0(Bundle)` method hides the query bar when the extra is present and its Boolean value is `false`. The patch inserts `Intent.putExtra(HIDEQUERYBARKEY, false)` immediately before the matching `Intent.getExtras()` call, then sets the corresponding engine flag in `p0(Intent)`.
 
-Related-query, related-link, feedback/recommendation, and copyright keys are intentionally omitted. In the inspected `p0(Intent)` method their Boolean return values are read but not stored to a corresponding field, so their effect is not established.
+Related-query, related-link, feedback/recommendation, and copyright keys are intentionally omitted. In the inspected `p0(Intent)` method their Boolean return values are read but not stored to a corresponding engine boolean field, so their effect is not established.
 
 ## Safety boundary
 
@@ -51,12 +51,19 @@ No billing, subscription, purchase verification, account, entitlement, network a
 
 ## Fingerprint rationale
 
-- Result appearance: two stable, app-owned query-mode string constants in a no-argument method under the Wolfram Alpha library package.
-- Result flags: stable full extra-key strings, including the terminal `PODSELECTKEY` read, in the fragment's `Intent` handler.
-- Query bar: `Activity.getIntent()` followed immediately by `move-result-object`, then the exact query-bar key and `BaseBundle.containsKey/getBoolean` calls.
+- Result appearance: both stable app-owned query-mode string constants in the query-parameter builder.
+- Result flags: stable full extra-key strings, including the terminal `PODSELECTKEY` read and the following `BaseBundle.getString(String)` call, in the fragment's `Intent` handler.
+- Query bar: `Intent.getExtras()`, immediately followed by `move-result-object` and the exact `HIDEQUERYBARKEY` string, then `BaseBundle.containsKey/getBoolean`. The supplied APK does not use `Activity.getIntent()` in this path; the fingerprint was corrected to match the actual DEX sequence.
 
 The implementation derives the obfuscated boolean field references from the matched method's own key-to-`iput-boolean` instruction sequences instead of hard-coding those field names.
 
 ## Validation status
 
-APK reconnaissance and raw DEX instruction inspection completed. Full Smali decompilation, Morphe compilation, bundle inspection, patch application to the original APKS, and device/runtime testing remain pending.
+- APK archive/package/version reconnaissance: completed.
+- Raw DEX instruction inspection for the three target methods: completed using a local DEX parser; this is not a full Smali decompilation.
+- Initial CI Kotlin/Morphe build: passed before the query-bar fingerprint correction.
+- Corrected source has been pushed; CI for the corrected head and bundle inspection are pending.
+- Applying the generated bundle to the original APKS and inspecting the resulting splits: pending.
+- Runtime/device testing: pending.
+
+Do not describe the patches as working until bundle generation, patch application, and runtime validation have succeeded.
