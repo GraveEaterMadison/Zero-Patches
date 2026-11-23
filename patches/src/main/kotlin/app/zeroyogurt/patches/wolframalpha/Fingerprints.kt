@@ -41,8 +41,10 @@ internal object ResultOptionsFingerprint : Fingerprint(
 )
 
 /**
- * Finds the query-bar visibility check in fragment setup. The move-result-object is
- * matched immediately after Activity.getIntent so its register can be reused safely.
+ * Finds the query-bar visibility check using the fragment's Intent field.
+ *
+ * In the inspected target, y0(Bundle) loads an Intent field and calls
+ * Intent.getExtras(); it does not call Activity.getIntent().
  */
 internal object QueryBarFingerprint : Fingerprint(
     definingClass = WolframAlphaConstants.FRAGMENT_PACKAGE,
@@ -50,9 +52,9 @@ internal object QueryBarFingerprint : Fingerprint(
     parameters = listOf("Landroid/os/Bundle;"),
     filters = listOf(
         methodCall(
-            definingClass = "Landroid/app/Activity;",
-            name = "getIntent",
-            returnType = "Landroid/content/Intent;",
+            definingClass = "Landroid/content/Intent;",
+            name = "getExtras",
+            returnType = "Landroid/os/Bundle;",
         ),
         opcode(Opcode.MOVE_RESULT_OBJECT, MatchAfterImmediately()),
         string(WolframAlphaConstants.HIDE_QUERY_BAR_KEY),
