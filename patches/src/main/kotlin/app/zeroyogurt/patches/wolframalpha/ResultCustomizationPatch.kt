@@ -5,7 +5,7 @@ import app.morphe.patcher.patch.booleanOption
 import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.getFreeRegisterProvider
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -53,13 +53,16 @@ val wolframAlphaResultCustomizationPatch = patch(
             if (hidePoweredByFooter.value == true) add(WolframAlphaConstants.HIDE_POWERED_BY_FOOTER_KEY)
         }
 
+        // Resolve both methods up front so a changed target structure fails explicitly.
         val queryBarMethod = QueryBarFingerprint.method
         val resultOptionsMethod = ResultOptionsFingerprint.method
 
         if (hideQueryBar.value == true) {
-            val intentResult = QueryBarFingerprint.instructionMatches[1]
-            val intentRegister = intentResult.getInstruction<OneRegisterInstruction>().registerA
-            val insertIndex = intentResult.index + 1
+            // The matched Intent.getExtras() call receives the fragment's existing Intent.
+            // Insert immediately before it, after the Intent field has been loaded.
+            val extrasCall = QueryBarFingerprint.instructionMatches[0]
+            val intentRegister = extrasCall.getInstruction<FiveRegisterInstruction>().registerC
+            val insertIndex = extrasCall.index
             val registers = queryBarMethod.getFreeRegisterProvider(insertIndex, 2, intentRegister)
             val keyRegister = registers.getFreeRegister()
             val valueRegister = registers.getFreeRegister()
@@ -82,6 +85,8 @@ val wolframAlphaResultCustomizationPatch = patch(
             val instructions = resultOptionsMethod.implementation?.instructions?.toList()
                 ?: error("Result options fingerprint resolved to a method without implementation")
 
+            // Map each supported public extra key to the app's actual boolean field write.
+            // Similar extras read and discarded by this version are intentionally omitted.
             val fieldByKey = mutableMapOf<String, FieldReference>()
             instructions.forEachIndexed { index, instruction ->
                 if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) {
@@ -111,6 +116,7 @@ val wolframAlphaResultCustomizationPatch = patch(
                 fieldByKey[key] ?: error("Could not resolve the app field for result flag: $key")
             }
 
+            // PODSELECTKEY is followed by the fragment's load of its shared engine object.
             val podSelectCallIndex = ResultOptionsFingerprint.instructionMatches.last().index
             val engineLoadIndex = (podSelectCallIndex + 1 until instructions.size).firstOrNull { index ->
                 val instruction = instructions[index]
